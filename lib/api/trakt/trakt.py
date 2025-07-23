@@ -180,6 +180,7 @@ class TraktBase:
             raise
 
     def trakt_refresh_token(self):
+        early_refresh = 90 * 60
         CLIENT_ID = trakt_client()
         if CLIENT_ID in self.empty_setting_check:
             return self.no_client_key()
@@ -197,7 +198,7 @@ class TraktBase:
         if response:
             set_property("trakt_token", str(response["access_token"]))
             set_property("trakt_refresh", str(response["refresh_token"]))
-            set_property("trakt_expires", str(time.time() + 7776000))
+            set_property("trakt_expires", str(time.time() + token["refresh_token"] - early_refresh))
 
     def get_trakt_id_by_tmdb(self, tmdb_id, media_type="movie"):
         params = {
@@ -294,13 +295,14 @@ class TraktAuthentication(TraktBase):
     def trakt_authenticate(self):
         code = self.trakt_get_device_code()
         token = self.trakt_get_device_token(code)
+        early_refresh = 90 * 60
         if not token:
             kodilog("Trakt authentication failed, no token received")
             notification("Trakt Error Authorizing", time=3000)
             return False
         set_property("trakt_token", str(token["access_token"]))
         set_property("trakt_refresh", str(token["refresh_token"]))
-        set_property("trakt_expires", str(time.time() + 7776000))
+        set_property("trakt_expires", str(time.time() + token["refresh_token"] - early_refresh))
         try:
             user = self.call_trakt("users/me")
             set_setting("trakt_user", str(user["username"]))
